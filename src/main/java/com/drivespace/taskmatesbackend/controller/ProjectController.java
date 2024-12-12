@@ -1,39 +1,69 @@
 package com.drivespace.taskmatesbackend.controller;
 
-import com.drivespace.taskmatesbackend.dto.ProjectDTO;
-import com.drivespace.taskmatesbackend.model.ProjectEntity;
+import com.drivespace.taskmatesbackend.mapper.MemberDTOMapper;
+import com.drivespace.taskmatesbackend.mapper.ProjectDTOMapper;
+import com.drivespace.taskmatesbackend.model.dto.*;
 import com.drivespace.taskmatesbackend.service.ProjectService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @RestController
+@RequestMapping("/api/projects")
 public class ProjectController {
 
     private final ProjectService projectService;
+    private final ProjectDTOMapper projectDTOMapper;
+    private final MemberDTOMapper memberDTOMapper;
 
     @Autowired
-    public ProjectController(ProjectService projectService) {
+    public ProjectController(ProjectService projectService, ProjectDTOMapper projectDTOMapper, MemberDTOMapper memberDTOMapper) {
         this.projectService = projectService;
+        this.projectDTOMapper = projectDTOMapper;
+        this.memberDTOMapper = memberDTOMapper;
     }
 
-    @GetMapping("/projects")
-    public String getProjects() {
-        return "Hello, World2";
+    @GetMapping("/{projectId}")
+    public ProjectDTO getProject(@PathVariable UUID projectId) {
+        return projectDTOMapper.apply(projectService.getProject(projectId));
     }
 
-    @GetMapping("/owner/{ownerId}")
-    public List<ProjectDTO> getProjectsByOwnerId(@PathVariable UUID ownerId) {
-        System.out.println("ownerId = " + ownerId);
-        List<ProjectEntity> projects = projectService.getProjectsByOwnerId(ownerId);
+    @PostMapping()
+    public ProjectDTO createProject(@RequestBody CreateProjectDTO projectDTO) {
+        return projectService.createProject(projectDTO);
+    }
 
-        return projects.stream()
-                .map(project -> new ProjectDTO(project.getId(), project.getName(), project.getDescription(), project.getOwner().getId()))
-                .collect(Collectors.toList());
+    @PutMapping("/{projectId}")
+    public ProjectDTO updateProject(@PathVariable @Validated UUID projectId, @RequestBody UpdateProjectDTO projectDTO) {
+        return projectService.updateProject(projectId, projectDTO);
+    }
+
+    @DeleteMapping("/{projectId}")
+    public ResponseEntity<Void> deleteProject(@PathVariable UUID projectId) {
+        return projectService.deleteProject(projectId);
+    }
+
+    @GetMapping("/{projectId}/members")
+    public List<MemberDTO> getMembers(@PathVariable UUID projectId) {
+        List<MemberDTO> users = projectService.getMembers(projectId).stream()
+                .map(memberDTOMapper)
+                .toList();
+
+        return ResponseEntity.ok(users).getBody();
+    }
+
+    @PostMapping("/{projectId}/invite")
+    public ResponseEntity<Void> inviteMember(@PathVariable UUID projectId, @RequestParam UUID invitedUserId) {
+        return projectService.inviteMember(projectId, invitedUserId);
+    }
+
+    @DeleteMapping("/{projectId}/members/{memberId}")
+    public ResponseEntity<Void> removeMember(@PathVariable UUID projectId, @PathVariable UUID memberId) {
+        return projectService.removeMember(projectId, memberId);
     }
 }
