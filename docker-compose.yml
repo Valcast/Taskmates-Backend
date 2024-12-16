@@ -40,6 +40,7 @@ services:
       POSTGRES_PASSWORD: ${BACKEND_DATABASE_PASSWORD}
     volumes:
       - db_data:/var/lib/postgresql/data
+      - ./db/migrations/backend_db:/docker-entrypoint-initdb.d
 
   auth_db:
     image: postgres:15
@@ -52,6 +53,7 @@ services:
       POSTGRES_PASSWORD: ${AUTH_DATABASE_PASSWORD}
     volumes:
       - auth_db_data:/var/lib/postgresql/data
+      - ./db/migrations/auth_db:/docker-entrypoint-initdb.d
 
 volumes:
   db_data:
