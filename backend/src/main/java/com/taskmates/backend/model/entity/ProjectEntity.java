@@ -9,7 +9,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "project")
+@Table(name = "projects")
 public class ProjectEntity {
     @Id
     @ColumnDefault("gen_random_uuid()")

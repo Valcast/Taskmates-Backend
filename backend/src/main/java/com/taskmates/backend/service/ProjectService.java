@@ -11,8 +11,8 @@ import com.taskmates.backend.model.entity.UserEntity;
 import com.taskmates.backend.model.enums.InvitationStatus;
 import com.taskmates.backend.model.exception.*;
 import com.taskmates.backend.repository.InvitationRepository;
-import com.taskmates.backend.repository.ProjectRepository;
 import com.taskmates.backend.repository.ProjectUserRepository;
+import com.taskmates.backend.repository.ProjectsRepository;
 import com.taskmates.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -27,14 +27,14 @@ import java.util.stream.Collectors;
 @Service
 public class ProjectService {
 
-    private final ProjectRepository projectRepository;
+    private final ProjectsRepository projectRepository;
     private final UserRepository userRepository;
     private final ProjectUserRepository projectUserRepository;
     private final InvitationRepository invitationRepository;
     private final ProjectDTOMapper projectDTOMapper;
 
     @Autowired
-    public ProjectService(ProjectRepository projectRepository, UserRepository userRepository, ProjectUserRepository projectUserRepository, InvitationRepository invitationRepository, ProjectDTOMapper projectDTOMapper) {
+    public ProjectService(ProjectsRepository projectRepository, UserRepository userRepository, ProjectUserRepository projectUserRepository, InvitationRepository invitationRepository, ProjectDTOMapper projectDTOMapper) {
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
         this.projectUserRepository = projectUserRepository;

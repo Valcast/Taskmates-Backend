@@ -39,9 +39,6 @@ public class UserEntity {
     @Column(name = "email_verified", nullable = false)
     private Boolean emailVerified = false;
 
-    @Column(name = "password_hash", nullable = false)
-    private String passwordHash;
-
     @Column(name = "profile_picture_url", length = Integer.MAX_VALUE)
     private String profilePictureUrl;
 
@@ -55,18 +52,6 @@ public class UserEntity {
     @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
-
-    @ColumnDefault("'ROLE_USER'")
-    @Column(name = "authorities", length = 20)
-    private String authorities;
-
-    public String getAuthorities() {
-        return authorities;
-    }
-
-    public void setAuthorities(String authorities) {
-        this.authorities = authorities;
-    }
 
     public UUID getId() {
         return id;
@@ -130,14 +115,6 @@ public class UserEntity {
 
     public void setEmailVerified(Boolean emailVerified) {
         this.emailVerified = emailVerified;
-    }
-
-    public String getPasswordHash() {
-        return passwordHash;
-    }
-
-    public void setPasswordHash(String passwordHash) {
-        this.passwordHash = passwordHash;
     }
 
     public String getProfilePictureUrl() {

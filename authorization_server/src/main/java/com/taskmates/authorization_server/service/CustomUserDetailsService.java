@@ -1,7 +1,7 @@
-package com.taskmates.backend.service;
+package com.taskmates.authorization_server.service;
 
-import com.taskmates.backend.model.entity.UserEntity;
-import com.taskmates.backend.repository.UserRepository;
+import com.taskmates.authorization_server.model.UserEntity;
+import com.taskmates.authorization_server.repository.UserRepository;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
@@ -11,6 +11,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
@@ -24,11 +25,14 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
 
-        UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
+        UserEntity user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + username));
 
-        List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(user.getAuthorities()));
+        List<GrantedAuthority> authorities = user.getAuthorities().stream()
+                .map(authority -> new SimpleGrantedAuthority(authority.getName().name()))
+                .collect(Collectors.toList());
 
-        return new User(user.getUsername(), user.getPasswordHash(), authorities);
+        return new User(user.getEmail(), user.getPassword(), authorities);
     }
+
 }

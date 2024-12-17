@@ -9,9 +9,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.DelegatingPasswordEncoder;
+import org.springframework.security.crypto.password.NoOpPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.core.oidc.OidcScopes;
@@ -35,6 +41,7 @@ import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.util.Map;
 import java.util.Set;
 
 @Configuration
@@ -54,7 +61,7 @@ public class AuthorizationServerConfig {
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
                 .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
                 .clientSettings(ClientSettings.builder().requireProofKey(false).build())
-                .redirectUri("http://localhost:8081/login/oauth2/code/mobile")
+                .redirectUri("http://localhost:8081/authorized")
                 .scope(OidcScopes.OPENID)
                 .build();
 
@@ -76,6 +83,18 @@ public class AuthorizationServerConfig {
 
         http.exceptionHandling(e ->
                 e.authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint("/login")));
+
+        return http.build();
+    }
+
+    @Bean
+    @Order(2)
+    public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+
+        http.formLogin(Customizer.withDefaults());
+
+        http.authorizeHttpRequests(authorizeRequests -> authorizeRequests.anyRequest().authenticated());
+
 
         return http.build();
     }
@@ -113,11 +132,27 @@ public class AuthorizationServerConfig {
         return (context) -> {
             if (OAuth2TokenType.ACCESS_TOKEN.equals(context.getTokenType())) {
                 context.getClaims().claims((claims) -> {
-                    Set<String> authorities = AuthorityUtils.authorityListToSet(context.getPrincipal());
+                    Authentication authentication = context.getPrincipal();
 
-                    claims.put("authorities", authorities);
+                    if (authentication instanceof UsernamePasswordAuthenticationToken) {
+                        Set<String> authorities = AuthorityUtils.authorityListToSet(authentication.getAuthorities());
+                        claims.put("authorities", authorities);
+                    }
                 });
             }
         };
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+
+        Map<String, PasswordEncoder> encoders = Map.of(
+                "noop", NoOpPasswordEncoder.getInstance(),
+                "bcrypt", new BCryptPasswordEncoder());
+
+        DelegatingPasswordEncoder delegatingPasswordEncoder = new DelegatingPasswordEncoder("bcrypt", encoders);
+        delegatingPasswordEncoder.setDefaultPasswordEncoderForMatches(encoders.get("noop"));
+
+        return delegatingPasswordEncoder;
     }
 }

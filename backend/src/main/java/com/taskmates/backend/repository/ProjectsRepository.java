@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Repository
-public interface ProjectRepository extends JpaRepository<ProjectEntity, UUID> {
+public interface ProjectsRepository extends JpaRepository<ProjectEntity, UUID> {
 
     List<ProjectEntity> findAllByOwner_id(UUID ownerId);
 }

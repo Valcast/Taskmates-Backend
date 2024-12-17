@@ -1,35 +1,35 @@
 services:
   backend:
+    container_name: backend
     build:
       context: ./backend
-    container_name: backend-app
     ports:
       - "8080:8080"
     expose:
       - "8080"
     depends_on:
-      - backend_db
+      - backend-db
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://backend_db:5432/${BACKEND_DATABASE_NAME}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://backend-db:5432/${BACKEND_DATABASE_NAME}
       SPRING_DATASOURCE_USERNAME: ${BACKEND_DATABASE_USER}
       SPRING_DATASOURCE_PASSWORD: ${BACKEND_DATABASE_PASSWORD}
 
   authorization_server:
     build:
       context: ./authorization_server
-    container_name: auth-server
+    container_name: authorization-server
     ports:
       - "8081:8080"
     expose:
       - "8081"
     depends_on:
-      - auth_db
+      - auth-db
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://auth_db:5432/${AUTH_DATABASE_NAME}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://auth-db:5432/${AUTH_DATABASE_NAME}
       SPRING_DATASOURCE_USERNAME: ${AUTH_DATABASE_USER}
       SPRING_DATASOURCE_PASSWORD: ${AUTH_DATABASE_PASSWORD}
 
-  backend_db:
+  backend-db:
     image: postgres:15
     container_name: backend-db
     ports:
@@ -42,7 +42,7 @@ services:
       - db_data:/var/lib/postgresql/data
       - ./db/migrations/backend_db:/docker-entrypoint-initdb.d
 
-  auth_db:
+  auth-db:
     image: postgres:15
     container_name: auth-db
     ports:
@@ -54,6 +54,7 @@ services:
     volumes:
       - auth_db_data:/var/lib/postgresql/data
       - ./db/migrations/auth_db:/docker-entrypoint-initdb.d
+
 
 volumes:
   db_data:

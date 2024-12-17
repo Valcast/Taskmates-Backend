@@ -1,6 +1,5 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
-CREATE TYPE user_authority AS ENUM ('ROLE_USER', 'ROLE_ADMIN');
 
 CREATE TABLE Users
 (
@@ -9,11 +8,9 @@ CREATE TABLE Users
     surname             VARCHAR(255)                               NOT NULL,
     username            VARCHAR(50)                                NOT NULL UNIQUE,
     bio                 TEXT,
-    authorities         user_authority   DEFAULT 'ROLE_USER',
     phone_number        VARCHAR(15),
     email               VARCHAR(255)                               NOT NULL UNIQUE,
     email_verified      BOOLEAN          DEFAULT FALSE             NOT NULL,
-    password_hash       VARCHAR(255)                               NOT NULL,
     profile_picture_url TEXT,
     last_login          TIMESTAMP,
     created_at          TIMESTAMP        DEFAULT CURRENT_TIMESTAMP NOT NULL,
