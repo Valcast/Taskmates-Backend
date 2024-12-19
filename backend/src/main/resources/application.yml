@@ -1,1 +1,8 @@
-keySetUri: "http://authorization-server:8080/oauth2/jwks"
+logging:
+  level:
+    org.springframework.security: trace
+
+
+spring:
+  datasource:
+    url: jdbc:postgresql://backend-db:5432/backend_db

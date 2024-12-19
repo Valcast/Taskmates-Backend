@@ -10,7 +10,6 @@ services:
     depends_on:
       - backend-db
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://backend-db:5432/${BACKEND_DATABASE_NAME}
       SPRING_DATASOURCE_USERNAME: ${BACKEND_DATABASE_USER}
       SPRING_DATASOURCE_PASSWORD: ${BACKEND_DATABASE_PASSWORD}
 
@@ -25,9 +24,10 @@ services:
     depends_on:
       - auth-db
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://auth-db:5432/${AUTH_DATABASE_NAME}
       SPRING_DATASOURCE_USERNAME: ${AUTH_DATABASE_USER}
       SPRING_DATASOURCE_PASSWORD: ${AUTH_DATABASE_PASSWORD}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
 
   backend-db:
     image: postgres:15

@@ -2,6 +2,7 @@ package com.taskmates.authorization_server.service;
 
 import com.taskmates.authorization_server.model.UserEntity;
 import com.taskmates.authorization_server.repository.UserRepository;
+import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
@@ -27,6 +28,10 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         UserEntity user = userRepository.findByEmail(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + username));
+
+        if (user.getPassword() == null) {
+            throw new AuthenticationServiceException("Account created via external provider. Please log in using the external provider.");
+        }
 
         List<GrantedAuthority> authorities = user.getAuthorities().stream()
                 .map(authority -> new SimpleGrantedAuthority(authority.getName().name()))

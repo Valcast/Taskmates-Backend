@@ -5,24 +5,32 @@ import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
+import com.taskmates.authorization_server.model.UserEntity;
+import com.taskmates.authorization_server.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.DelegatingPasswordEncoder;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
+import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import org.springframework.security.oauth2.core.oidc.OidcScopes;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
+import org.springframework.security.oauth2.server.authorization.JdbcOAuth2AuthorizationConsentService;
+import org.springframework.security.oauth2.server.authorization.JdbcOAuth2AuthorizationService;
+import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsentService;
+import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.client.JdbcRegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
@@ -33,6 +41,7 @@ import org.springframework.security.oauth2.server.authorization.settings.ClientS
 import org.springframework.security.oauth2.server.authorization.token.JwtEncodingContext;
 import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenCustomizer;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 
 import javax.sql.DataSource;
@@ -41,11 +50,23 @@ import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Configuration
 public class AuthorizationServerConfig {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthorizationServerConfig.class);
+    private final AuthenticationSuccessHandler oauth2AuthenticationSuccessHandler;
+
+    private final UserRepository userRepository;
+
+    public AuthorizationServerConfig(AuthenticationSuccessHandler oauth2AuthenticationSuccessHandler, UserRepository userRepository) {
+        this.oauth2AuthenticationSuccessHandler = oauth2AuthenticationSuccessHandler;
+        this.userRepository = userRepository;
+    }
 
 
     @Bean
@@ -93,6 +114,8 @@ public class AuthorizationServerConfig {
 
         http.formLogin(Customizer.withDefaults());
 
+        http.oauth2Login(oauth2 -> oauth2.successHandler(oauth2AuthenticationSuccessHandler));
+
         http.authorizeHttpRequests(authorizeRequests -> authorizeRequests.anyRequest().authenticated());
 
 
@@ -101,7 +124,7 @@ public class AuthorizationServerConfig {
 
     @Bean
     public AuthorizationServerSettings authorizationServerSettings() {
-        return AuthorizationServerSettings.builder().build();
+        return AuthorizationServerSettings.builder().issuer("http://auth-server:8080").build();
     }
 
     @Bean
@@ -129,18 +152,48 @@ public class AuthorizationServerConfig {
 
     @Bean
     public OAuth2TokenCustomizer<JwtEncodingContext> tokenCustomizer() {
-        return (context) -> {
-            if (OAuth2TokenType.ACCESS_TOKEN.equals(context.getTokenType())) {
-                context.getClaims().claims((claims) -> {
-                    Authentication authentication = context.getPrincipal();
+        return (context) -> context.getClaims().claims((claims) -> {
 
-                    if (authentication instanceof UsernamePasswordAuthenticationToken) {
-                        Set<String> authorities = AuthorityUtils.authorityListToSet(authentication.getAuthorities());
-                        claims.put("authorities", authorities);
-                    }
-                });
-            }
-        };
+            Map<String, Object> principalClaims = getPrincipalClaims(context);
+
+            String email = (String) principalClaims.get("email");
+
+            UserEntity user = userRepository.findByEmail(email).orElseThrow(
+                    () -> new RuntimeException("User not found")
+            );
+
+            Set<String> roles = user.getAuthorities().stream().map(
+                    authority -> authority.getName().name()
+            ).collect(Collectors.toSet());
+
+            claims.put("roles", roles);
+        });
+    }
+
+    private Map<String, Object> getPrincipalClaims(JwtEncodingContext context) {
+        Authentication principal = context.getPrincipal();
+        Map<String, Object> principalClaims;
+
+        if (principal.getPrincipal() instanceof OidcUser oidcUser) {
+            OidcIdToken idToken = oidcUser.getIdToken();
+            principalClaims = idToken.getClaims();
+        } else if (principal.getPrincipal() instanceof OAuth2User oauth2User) {
+            principalClaims = oauth2User.getAttributes();
+        } else {
+            principalClaims = Collections.emptyMap();
+        }
+        return principalClaims;
+    }
+
+
+    @Bean
+    public OAuth2AuthorizationService authorizationService(DataSource dataSource, RegisteredClientRepository registeredClientRepository) {
+        return new JdbcOAuth2AuthorizationService(new JdbcTemplate(dataSource), registeredClientRepository);
+    }
+
+    @Bean
+    public OAuth2AuthorizationConsentService authorizationConsentService(DataSource dataSource, RegisteredClientRepository registeredClientRepository) {
+        return new JdbcOAuth2AuthorizationConsentService(new JdbcTemplate(dataSource), registeredClientRepository);
     }
 
     @Bean
@@ -155,4 +208,5 @@ public class AuthorizationServerConfig {
 
         return delegatingPasswordEncoder;
     }
+
 }

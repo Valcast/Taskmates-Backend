@@ -4,16 +4,27 @@ CREATE TABLE Users
 (
     id       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email    VARCHAR(255)                  NOT NULL UNIQUE,
-    password VARCHAR(255)                  NOT NULL,
+    password VARCHAR(255)                  NULL,
     enabled  BOOLEAN          DEFAULT TRUE NOT NULL
 );
 
-CREATE TYPE user_authority AS ENUM ('ROLE_USER', 'ROLE_ADMIN');
+CREATE TABLE Providers
+(
+    id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL UNIQUE
+);
+
+CREATE TABLE UserProviders
+(
+    user_id     UUID REFERENCES Users (id) ON DELETE CASCADE,
+    provider_id UUID REFERENCES Providers (id) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, provider_id)
+);
 
 CREATE TABLE Authorities
 (
     id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name user_authority NOT NULL UNIQUE
+    name VARCHAR(20) NOT NULL UNIQUE
 );
 
 CREATE TABLE UserAuthorities

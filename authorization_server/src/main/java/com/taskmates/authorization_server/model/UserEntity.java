@@ -1,7 +1,6 @@
 package com.taskmates.authorization_server.model;
 
 import jakarta.persistence.*;
-import org.hibernate.annotations.ColumnDefault;
 
 import java.util.Set;
 import java.util.UUID;
@@ -9,20 +8,20 @@ import java.util.UUID;
 @Entity
 @Table(name = "users")
 public class UserEntity {
+
     @Id
-    @ColumnDefault("gen_random_uuid()")
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "id", nullable = false)
     private UUID id;
 
     @Column(name = "email", nullable = false, unique = true)
     private String email;
 
-    @Column(name = "password", nullable = false)
+    @Column(name = "password")
     private String password;
 
-    @ColumnDefault("true")
     @Column(name = "enabled", nullable = false)
-    private Boolean enabled = false;
+    private Boolean enabled = true;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
@@ -31,6 +30,23 @@ public class UserEntity {
             inverseJoinColumns = @JoinColumn(name = "authority_id")
     )
     private Set<AuthorityEntity> authorities;
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "userproviders",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "provider_id")
+    )
+    private Set<ProviderEntity> providers;
+
+    public UserEntity() {
+    }
+
+    public UserEntity(String email, Set<AuthorityEntity> authorities, Set<ProviderEntity> providers) {
+        this.email = email;
+        this.authorities = authorities;
+        this.providers = providers;
+    }
 
     public UUID getId() {
         return id;
@@ -70,5 +86,13 @@ public class UserEntity {
 
     public void setAuthorities(Set<AuthorityEntity> authorities) {
         this.authorities = authorities;
+    }
+
+    public Set<ProviderEntity> getProviders() {
+        return providers;
+    }
+
+    public void setProviders(Set<ProviderEntity> providers) {
+        this.providers = providers;
     }
 }

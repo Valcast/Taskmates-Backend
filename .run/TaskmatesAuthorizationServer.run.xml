@@ -1,0 +1,11 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="TaskmatesAuthorizationServer" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+    <module name="taskmates.authorization_server.main" />
+    <target name="authorization_server" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="com.taskmates.authorization_server.TaskmatesAuthorizationServerApplication" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+      <option name="RunConfigurationTask" enabled="true" run_configuration_name="AuthDatabaseService" run_configuration_type="docker-deploy" />
+    </method>
+  </configuration>
+</component>
