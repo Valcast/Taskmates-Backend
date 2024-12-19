@@ -1,6 +1,6 @@
 package com.taskmates.backend.repository;
 
-import com.taskmates.backend.model.entity.ProjectEntity;
+import com.taskmates.backend.model.entities.ProjectEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

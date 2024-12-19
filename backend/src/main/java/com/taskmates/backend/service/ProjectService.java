@@ -4,14 +4,15 @@ import com.taskmates.backend.mapper.ProjectDTOMapper;
 import com.taskmates.backend.model.dto.CreateProjectDTO;
 import com.taskmates.backend.model.dto.ProjectDTO;
 import com.taskmates.backend.model.dto.UpdateProjectDTO;
-import com.taskmates.backend.model.entity.InvitationEntity;
-import com.taskmates.backend.model.entity.ProjectEntity;
-import com.taskmates.backend.model.entity.ProjectUserEntity;
-import com.taskmates.backend.model.entity.UserEntity;
+import com.taskmates.backend.model.entities.InvitationEntity;
+import com.taskmates.backend.model.entities.ProjectEntity;
+import com.taskmates.backend.model.entities.UserEntity;
 import com.taskmates.backend.model.enums.InvitationStatus;
-import com.taskmates.backend.model.exception.*;
+import com.taskmates.backend.model.exception.ProjectNotFoundException;
+import com.taskmates.backend.model.exception.UserAlreadyInvitedException;
+import com.taskmates.backend.model.exception.UserAlreadyProjectMemberException;
+import com.taskmates.backend.model.exception.UserNotFoundException;
 import com.taskmates.backend.repository.InvitationRepository;
-import com.taskmates.backend.repository.ProjectUserRepository;
 import com.taskmates.backend.repository.ProjectsRepository;
 import com.taskmates.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,15 +30,13 @@ public class ProjectService {
 
     private final ProjectsRepository projectRepository;
     private final UserRepository userRepository;
-    private final ProjectUserRepository projectUserRepository;
     private final InvitationRepository invitationRepository;
     private final ProjectDTOMapper projectDTOMapper;
 
     @Autowired
-    public ProjectService(ProjectsRepository projectRepository, UserRepository userRepository, ProjectUserRepository projectUserRepository, InvitationRepository invitationRepository, ProjectDTOMapper projectDTOMapper) {
+    public ProjectService(ProjectsRepository projectRepository, UserRepository userRepository, InvitationRepository invitationRepository, ProjectDTOMapper projectDTOMapper) {
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
-        this.projectUserRepository = projectUserRepository;
         this.invitationRepository = invitationRepository;
         this.projectDTOMapper = projectDTOMapper;
     }
@@ -69,8 +68,28 @@ public class ProjectService {
         return projectRepository.findById(projectId).orElseThrow(ProjectNotFoundException::new);
     }
 
-    public ProjectDTO updateProject(UUID projectId, UpdateProjectDTO projectDTO) {
-        return null;
+    public ProjectEntity updateProject(UUID projectId, UpdateProjectDTO projectDTO) {
+        ProjectEntity project = projectRepository.findById(projectId).orElseThrow(ProjectNotFoundException::new);
+
+        if (projectDTO.name() != null) {
+            project.setName(projectDTO.name());
+        }
+
+        if (projectDTO.description() != null) {
+            project.setDescription(projectDTO.description());
+        }
+
+        if (projectDTO.status() != null) {
+            project.setStatus(projectDTO.status());
+        }
+
+        if (projectDTO.deadline() != null) {
+            project.setDeadline(projectDTO.deadline());
+        }
+
+        projectRepository.save(project);
+
+        return project;
     }
 
     public ResponseEntity<Void> deleteProject(UUID projectId) {
@@ -85,10 +104,6 @@ public class ProjectService {
     public ResponseEntity<Void> inviteMember(UUID projectId, UUID invitedUserId) {
         UserEntity user = userRepository.findById(invitedUserId).orElseThrow(UserNotFoundException::new);
         ProjectEntity project = projectRepository.findById(projectId).orElseThrow(ProjectNotFoundException::new);
-
-        projectUserRepository.findByProjectIdAndUserId(projectId, user.getId()).ifPresent(projectUser -> {
-            throw new UserAlreadyProjectMemberException();
-        });
 
 
         Optional<InvitationEntity> invitationOpt = invitationRepository.findByUserIdAndProjectId(user.getId(), projectId);
@@ -115,18 +130,22 @@ public class ProjectService {
     }
 
     public ResponseEntity<Void> removeMember(UUID projectId, UUID memberId) {
-        if (!userRepository.existsById(memberId)) throw new UserNotFoundException();
-        if (!projectRepository.existsById(projectId)) throw new ProjectNotFoundException();
+        ProjectEntity project = projectRepository.findById(projectId).orElseThrow(ProjectNotFoundException::new);
+        List<UserEntity> members = project.getMembers();
 
-        projectUserRepository.findByProjectIdAndUserId(projectId, memberId).ifPresentOrElse(
-                projectUserRepository::delete,
-                ProjectMemberNotFoundException::new
-        );
+        UserEntity member = members.stream()
+                .filter(user -> user.getId().equals(memberId))
+                .findFirst()
+                .orElseThrow(UserNotFoundException::new);
+
+        members.remove(member);
 
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
     public List<UserEntity> getMembers(UUID projectId) {
-        return projectUserRepository.findAllByProjectId((projectId)).stream().map(ProjectUserEntity::getUser).collect(Collectors.toList());
+        ProjectEntity project = projectRepository.findById(projectId).orElseThrow(ProjectNotFoundException::new);
+
+        return project.getMembers();
     }
 }

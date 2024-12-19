@@ -1,18 +1,23 @@
-package com.taskmates.backend.model.entity;
+package com.taskmates.backend.model.entities;
 
+import com.taskmates.backend.model.enums.TaskPriority;
+import com.taskmates.backend.model.enums.TaskStatus;
 import jakarta.persistence.*;
-import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "task")
+@Table(name = "tasks")
 public class TaskEntity {
+
     @Id
-    @ColumnDefault("gen_random_uuid()")
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "id", nullable = false)
     private UUID id;
 
@@ -27,23 +32,34 @@ public class TaskEntity {
     @JoinColumn(name = "project_id", nullable = false)
     private ProjectEntity project;
 
-    @ColumnDefault("'PENDING'")
-    @Column(name = "status", nullable = false, length = 20)
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private TaskStatus status;
 
-    @ColumnDefault("'MEDIUM'")
-    @Column(name = "priority", nullable = false, length = 10)
-    private String priority;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "priority", nullable = false)
+    private TaskPriority priority;
+
+    @OneToMany(mappedBy = "task", fetch = FetchType.LAZY)
+    private List<SubtaskEntity> subtasks;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "tasksusers",
+            joinColumns = @JoinColumn(name = "task_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private List<UserEntity> assignees;
 
     @Column(name = "deadline")
     private Instant deadline;
 
-    @ColumnDefault("CURRENT_TIMESTAMP")
-    @Column(name = "created_at", nullable = false)
+    @CreationTimestamp
+    @Column(name = "created_at")
     private Instant createdAt;
 
-    @ColumnDefault("CURRENT_TIMESTAMP")
-    @Column(name = "updated_at", nullable = false)
+    @UpdateTimestamp
+    @Column(name = "updated_at")
     private Instant updatedAt;
 
     public UUID getId() {
@@ -78,22 +94,6 @@ public class TaskEntity {
         this.project = project;
     }
 
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public String getPriority() {
-        return priority;
-    }
-
-    public void setPriority(String priority) {
-        this.priority = priority;
-    }
-
     public Instant getDeadline() {
         return deadline;
     }
@@ -118,4 +118,35 @@ public class TaskEntity {
         this.updatedAt = updatedAt;
     }
 
+    public TaskStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(TaskStatus status) {
+        this.status = status;
+    }
+
+    public TaskPriority getPriority() {
+        return priority;
+    }
+
+    public void setPriority(TaskPriority priority) {
+        this.priority = priority;
+    }
+
+    public List<UserEntity> getAssignees() {
+        return assignees;
+    }
+
+    public void setAssignees(List<UserEntity> assignees) {
+        this.assignees = assignees;
+    }
+
+    public List<SubtaskEntity> getSubtasks() {
+        return subtasks;
+    }
+
+    public void setSubtasks(List<SubtaskEntity> subtasks) {
+        this.subtasks = subtasks;
+    }
 }

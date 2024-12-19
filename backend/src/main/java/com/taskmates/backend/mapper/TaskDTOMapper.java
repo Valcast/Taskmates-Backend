@@ -1,10 +1,12 @@
 package com.taskmates.backend.mapper;
 
 import com.taskmates.backend.model.dto.TaskDTO;
-import com.taskmates.backend.model.entity.TaskEntity;
+import com.taskmates.backend.model.entities.TaskEntity;
+import org.springframework.stereotype.Component;
 
 import java.util.function.Function;
 
+@Component
 public class TaskDTOMapper implements Function<TaskEntity, TaskDTO> {
 
     @Override

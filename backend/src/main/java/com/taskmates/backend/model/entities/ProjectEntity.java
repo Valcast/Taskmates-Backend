@@ -1,18 +1,22 @@
-package com.taskmates.backend.model.entity;
+package com.taskmates.backend.model.entities;
 
+import com.taskmates.backend.model.enums.ProjectStatus;
 import jakarta.persistence.*;
-import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
 @Table(name = "projects")
 public class ProjectEntity {
+
     @Id
-    @ColumnDefault("gen_random_uuid()")
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "id", nullable = false)
     private UUID id;
 
@@ -27,19 +31,30 @@ public class ProjectEntity {
     @JoinColumn(name = "owner_id", nullable = false)
     private UserEntity owner;
 
-    @ColumnDefault("'ACTIVE'")
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "usersprojects",
+            joinColumns = @JoinColumn(name = "project_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private List<UserEntity> members;
+
+    @OneToMany(mappedBy = "project", fetch = FetchType.LAZY)
+    private List<TaskEntity> tasks;
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    private String status;
+    private ProjectStatus status;
 
     @Column(name = "deadline")
     private Instant deadline;
 
-    @ColumnDefault("CURRENT_TIMESTAMP")
-    @Column(name = "created_at", nullable = false)
+    @CreationTimestamp
+    @Column(name = "created_at")
     private Instant createdAt;
 
-    @ColumnDefault("CURRENT_TIMESTAMP")
-    @Column(name = "updated_at", nullable = false)
+    @UpdateTimestamp
+    @Column(name = "updated_at")
     private Instant updatedAt;
 
     public UUID getId() {
@@ -74,13 +89,6 @@ public class ProjectEntity {
         this.owner = owner;
     }
 
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
 
     public Instant getDeadline() {
         return deadline;
@@ -106,4 +114,27 @@ public class ProjectEntity {
         this.updatedAt = updatedAt;
     }
 
+    public ProjectStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(ProjectStatus status) {
+        this.status = status;
+    }
+
+    public List<UserEntity> getMembers() {
+        return members;
+    }
+
+    public void setMembers(List<UserEntity> members) {
+        this.members = members;
+    }
+
+    public List<TaskEntity> getTasks() {
+        return tasks;
+    }
+
+    public void setTasks(List<TaskEntity> tasks) {
+        this.tasks = tasks;
+    }
 }

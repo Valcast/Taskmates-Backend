@@ -42,7 +42,7 @@ public class ProjectController {
 
     @PutMapping("/{projectId}")
     public ProjectDTO updateProject(@PathVariable @Validated UUID projectId, @RequestBody UpdateProjectDTO projectDTO) {
-        return projectService.updateProject(projectId, projectDTO);
+        return projectDTOMapper.apply(projectService.updateProject(projectId, projectDTO));
     }
 
     @DeleteMapping("/{projectId}")

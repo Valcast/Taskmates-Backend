@@ -1,7 +1,7 @@
 package com.taskmates.backend.mapper;
 
 import com.taskmates.backend.model.dto.ProjectDTO;
-import com.taskmates.backend.model.entity.ProjectEntity;
+import com.taskmates.backend.model.entities.ProjectEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.function.Function;

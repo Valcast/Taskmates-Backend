@@ -1,6 +1,8 @@
 package com.taskmates.backend.model.dto;
 
 
+import com.taskmates.backend.model.enums.ProjectStatus;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -9,7 +11,7 @@ public record ProjectDTO(
         String name,
         String description,
         UUID ownerId,
-        String status,
+        ProjectStatus status,
         Instant deadline
 ) {
 }

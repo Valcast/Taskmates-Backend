@@ -1,4 +1,4 @@
-package com.taskmates.backend.model.entity;
+package com.taskmates.backend.model.entities;
 
 import com.taskmates.backend.model.enums.InvitationStatus;
 import jakarta.persistence.*;
@@ -26,18 +26,16 @@ public class InvitationEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private UserEntity user;
 
-    @ColumnDefault("'PENDING'")
-    @Column(name = "status", nullable = false, length = 20)
+
     @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
     private InvitationStatus status;
 
     @CreationTimestamp
-    @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
     @UpdateTimestamp
-    @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 

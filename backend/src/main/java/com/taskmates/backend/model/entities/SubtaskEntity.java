@@ -1,17 +1,16 @@
-package com.taskmates.backend.model.entity;
+package com.taskmates.backend.model.entities;
 
 import jakarta.persistence.*;
-import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 import java.util.UUID;
 
 @Entity
-@Table(name = "subtask")
+@Table(name = "subtasks")
 public class SubtaskEntity {
     @Id
-    @ColumnDefault("gen_random_uuid()")
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "id", nullable = false)
     private UUID id;
 
@@ -21,9 +20,8 @@ public class SubtaskEntity {
     @Column(name = "description", length = Integer.MAX_VALUE)
     private String description;
 
-    @ColumnDefault("false")
     @Column(name = "is_completed")
-    private Boolean isCompleted;
+    private Boolean isCompleted = false;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)

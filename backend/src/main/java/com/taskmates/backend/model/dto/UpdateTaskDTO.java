@@ -1,8 +1,13 @@
 package com.taskmates.backend.model.dto;
 
+import com.taskmates.backend.model.enums.TaskStatus;
+
+import java.time.Instant;
+
 public record UpdateTaskDTO(
-        String name,
+        String title,
         String description,
-        String status,
-        String deadline
-){}
+        TaskStatus status,
+        Instant deadline
+) {
+}

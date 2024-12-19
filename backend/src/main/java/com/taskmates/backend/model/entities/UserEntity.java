@@ -1,19 +1,19 @@
-package com.taskmates.backend.model.entity;
+package com.taskmates.backend.model.entities;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import org.hibernate.annotations.ColumnDefault;
+import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
 @Table(name = "users")
 public class UserEntity {
+
     @Id
-    @ColumnDefault("gen_random_uuid()")
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "id", nullable = false)
     private UUID id;
 
@@ -35,7 +35,6 @@ public class UserEntity {
     @Column(name = "email", nullable = false)
     private String email;
 
-    @ColumnDefault("false")
     @Column(name = "email_verified", nullable = false)
     private Boolean emailVerified = false;
 
@@ -45,13 +44,19 @@ public class UserEntity {
     @Column(name = "last_login")
     private Instant lastLogin;
 
-    @ColumnDefault("CURRENT_TIMESTAMP")
+    @CreationTimestamp
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
-    @ColumnDefault("CURRENT_TIMESTAMP")
+    @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    @ManyToMany(fetch = FetchType.LAZY, mappedBy = "members")
+    private List<ProjectEntity> projects;
+
+    @ManyToMany(fetch = FetchType.LAZY, mappedBy = "assignees")
+    private List<TaskEntity> tasks;
 
     public UUID getId() {
         return id;
@@ -149,4 +154,19 @@ public class UserEntity {
         this.updatedAt = updatedAt;
     }
 
+    public List<ProjectEntity> getProjects() {
+        return projects;
+    }
+
+    public void setProjects(List<ProjectEntity> projects) {
+        this.projects = projects;
+    }
+
+    public List<TaskEntity> getTasks() {
+        return tasks;
+    }
+
+    public void setTasks(List<TaskEntity> tasks) {
+        this.tasks = tasks;
+    }
 }

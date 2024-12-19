@@ -5,5 +5,4 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
-
 }
