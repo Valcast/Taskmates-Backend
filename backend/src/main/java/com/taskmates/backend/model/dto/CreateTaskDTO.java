@@ -1,11 +1,15 @@
 package com.taskmates.backend.model.dto;
 
+import com.taskmates.backend.model.enums.TaskPriority;
+import com.taskmates.backend.model.enums.TaskStatus;
+
+import java.time.Instant;
+
 public record CreateTaskDTO(
-        String name,
+        String title,
         String description,
-        String deadline,
-        String status,
-        String priority,
-        String projectId
+        Instant deadline,
+        TaskStatus status,
+        TaskPriority priority
 ) {
 }

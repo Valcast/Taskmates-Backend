@@ -8,7 +8,7 @@ import java.util.UUID;
 
 public record TaskDTO(
         UUID id,
-        String name,
+        String title,
         String description,
         TaskStatus status,
         Instant deadline,
