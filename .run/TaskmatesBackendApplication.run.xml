@@ -1,0 +1,16 @@
+<component name="ProjectRunConfigurationManager">
+    <configuration default="false" name="TaskmatesBackendApplication" type="SpringBootApplicationConfigurationType"
+                   factoryName="Spring Boot" nameIsGenerated="true">
+        <option name="FRAME_DEACTIVATION_UPDATE_POLICY" value="UpdateClassesAndResources"/>
+        <module name="taskmates.backend.main"/>
+        <target name="backend"/>
+        <option name="SPRING_BOOT_MAIN_CLASS" value="com.taskmates.backend.TaskmatesBackendApplication"/>
+        <method v="2">
+            <option name="Make" enabled="true"/>
+            <option name="RunConfigurationTask" enabled="true" run_configuration_name="BackendDatabaseService"
+                    run_configuration_type="docker-deploy"/>
+            <option name="RunConfigurationTask" enabled="true" run_configuration_name="Kafka"
+                    run_configuration_type="docker-deploy"/>
+        </method>
+    </configuration>
+</component>

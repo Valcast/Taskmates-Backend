@@ -9,6 +9,7 @@ services:
       - "8080"
     depends_on:
       - backend-db
+      - kafka
     environment:
       SPRING_DATASOURCE_USERNAME: ${BACKEND_DATABASE_USER}
       SPRING_DATASOURCE_PASSWORD: ${BACKEND_DATABASE_PASSWORD}
@@ -28,6 +29,21 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${AUTH_DATABASE_PASSWORD}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+
+  notification_service:
+    build:
+      context: ./notification_service
+    container_name: notification-service
+    ports:
+      - "8082:8080"
+    expose:
+      - "8082"
+    depends_on:
+      - notification-db
+      - kafka
+    environment:
+      SPRING_DATASOURCE_USERNAME: ${NOTIFICATION_DATABASE_USER}
+      SPRING_DATASOURCE_PASSWORD: ${NOTIFICATION_DATABASE_PASSWORD}
 
   backend-db:
     image: postgres:15
@@ -56,6 +72,39 @@ services:
       - ./db/migrations/auth_db:/docker-entrypoint-initdb.d
 
 
+  notification-db:
+    image: postgres:15
+    container_name: notification-db
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_DB: notification_db
+      POSTGRES_USER: ${NOTIFICATION_DATABASE_USER}
+      POSTGRES_PASSWORD: ${NOTIFICATION_DATABASE_PASSWORD}
+    volumes:
+      - notification_db_data:/var/lib/postgresql/data
+      - ./db/migrations/notification_db:/docker-entrypoint-initdb.d
+
+  notification-cache:
+    image: redis:latest
+    container_name: notification-cache
+    command: [ "redis-server", "--appendonly", "yes" ]
+    ports:
+      - "6379:6379"
+    volumes:
+      - notification_cache_data:/data
+    restart: unless-stopped
+  
+  
+  kafka:
+    image: apache/kafka:3.9.0
+    restart: no
+    container_name: kafka
+    ports:
+      - "9092:9092"
+
 volumes:
   db_data:
   auth_db_data:
+  notification_db_data:
+  notification_cache_data:

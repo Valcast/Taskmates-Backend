@@ -4,10 +4,12 @@ import com.taskmates.backend.mapper.ProjectDTOMapper;
 import com.taskmates.backend.model.dto.CreateProjectDTO;
 import com.taskmates.backend.model.dto.ProjectDTO;
 import com.taskmates.backend.model.dto.UpdateProjectDTO;
+import com.taskmates.backend.model.dto.domain_update.ProjectUpdateEvent;
 import com.taskmates.backend.model.entities.InvitationEntity;
 import com.taskmates.backend.model.entities.ProjectEntity;
 import com.taskmates.backend.model.entities.UserEntity;
 import com.taskmates.backend.model.enums.InvitationStatus;
+import com.taskmates.backend.model.enums.UpdateDomainEventType;
 import com.taskmates.backend.model.exception.ProjectNotFoundException;
 import com.taskmates.backend.model.exception.UserAlreadyInvitedException;
 import com.taskmates.backend.model.exception.UserAlreadyProjectMemberException;
@@ -32,17 +34,25 @@ public class ProjectService {
     private final UserRepository userRepository;
     private final InvitationRepository invitationRepository;
     private final ProjectDTOMapper projectDTOMapper;
+    private final DomainUpdateProducer domainUpdateProducer;
+
 
     @Autowired
-    public ProjectService(ProjectsRepository projectRepository, UserRepository userRepository, InvitationRepository invitationRepository, ProjectDTOMapper projectDTOMapper) {
+    public ProjectService(ProjectsRepository projectRepository,
+                          UserRepository userRepository,
+                          InvitationRepository invitationRepository,
+                          ProjectDTOMapper projectDTOMapper,
+                          DomainUpdateProducer domainUpdateProducer) {
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
         this.invitationRepository = invitationRepository;
         this.projectDTOMapper = projectDTOMapper;
+        this.domainUpdateProducer = domainUpdateProducer;
     }
 
     public List<ProjectDTO> getProjectsByOwnerId(UUID ownerId) {
-        return projectRepository.findAllByOwner_id(ownerId).stream().map(projectDTOMapper).collect(Collectors.toList());
+        return projectRepository.findAllByOwner_id(ownerId).stream()
+                .map(projectDTOMapper).collect(Collectors.toList());
     }
 
     public ProjectDTO createProject(CreateProjectDTO projectDTO) {
@@ -61,15 +71,25 @@ public class ProjectService {
 
         ProjectEntity createdProject = projectRepository.save(projectEntity);
 
+        domainUpdateProducer.publishEvent(
+                new ProjectUpdateEvent(
+                        UpdateDomainEventType.PROJECT_UPSERT,
+                        createdProject.getId(),
+                        createdProject.getName()
+                ));
+
+
         return projectDTOMapper.apply(createdProject);
     }
 
     public ProjectEntity getProject(UUID projectId) {
-        return projectRepository.findById(projectId).orElseThrow(ProjectNotFoundException::new);
+        return projectRepository.findById(projectId)
+                .orElseThrow(ProjectNotFoundException::new);
     }
 
     public ProjectEntity updateProject(UUID projectId, UpdateProjectDTO projectDTO) {
-        ProjectEntity project = projectRepository.findById(projectId).orElseThrow(ProjectNotFoundException::new);
+        ProjectEntity project = projectRepository.findById(projectId)
+                .orElseThrow(ProjectNotFoundException::new);
 
         if (projectDTO.name() != null) {
             project.setName(projectDTO.name());
@@ -89,6 +109,13 @@ public class ProjectService {
 
         projectRepository.save(project);
 
+        domainUpdateProducer.publishEvent(
+                new ProjectUpdateEvent(
+                        UpdateDomainEventType.PROJECT_UPSERT,
+                        project.getId(),
+                        project.getName()
+                ));
+
         return project;
     }
 
@@ -97,13 +124,22 @@ public class ProjectService {
 
         projectRepository.deleteById(projectId);
 
+        domainUpdateProducer.publishEvent(
+                new ProjectUpdateEvent(
+                        UpdateDomainEventType.PROJECT_DELETED,
+                        projectId,
+                        null
+                ));
+
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
 
     public ResponseEntity<Void> inviteMember(UUID projectId, UUID invitedUserId) {
-        UserEntity user = userRepository.findById(invitedUserId).orElseThrow(UserNotFoundException::new);
-        ProjectEntity project = projectRepository.findById(projectId).orElseThrow(ProjectNotFoundException::new);
+        UserEntity user = userRepository.findById(invitedUserId)
+                .orElseThrow(UserNotFoundException::new);
+        ProjectEntity project = projectRepository.findById(projectId)
+                .orElseThrow(ProjectNotFoundException::new);
 
 
         Optional<InvitationEntity> invitationOpt = invitationRepository.findByUserIdAndProjectId(user.getId(), projectId);
@@ -130,7 +166,8 @@ public class ProjectService {
     }
 
     public ResponseEntity<Void> removeMember(UUID projectId, UUID memberId) {
-        ProjectEntity project = projectRepository.findById(projectId).orElseThrow(ProjectNotFoundException::new);
+        ProjectEntity project = projectRepository.findById(projectId)
+                .orElseThrow(ProjectNotFoundException::new);
         List<UserEntity> members = project.getMembers();
 
         UserEntity member = members.stream()
@@ -144,7 +181,8 @@ public class ProjectService {
     }
 
     public List<UserEntity> getMembers(UUID projectId) {
-        ProjectEntity project = projectRepository.findById(projectId).orElseThrow(ProjectNotFoundException::new);
+        ProjectEntity project = projectRepository.findById(projectId)
+                .orElseThrow(ProjectNotFoundException::new);
 
         return project.getMembers();
     }

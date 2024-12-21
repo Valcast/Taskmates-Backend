@@ -23,11 +23,13 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final ProjectsRepository projectsRepository;
     private final UserRepository userRepository;
+    private final DomainUpdateProducer domainUpdateProducer;
 
-    public TaskService(TaskRepository taskRepository, ProjectsRepository projectsRepository, UserRepository userRepository) {
+    public TaskService(TaskRepository taskRepository, ProjectsRepository projectsRepository, UserRepository userRepository, DomainUpdateProducer domainUpdateProducer) {
         this.taskRepository = taskRepository;
         this.projectsRepository = projectsRepository;
         this.userRepository = userRepository;
+        this.domainUpdateProducer = domainUpdateProducer;
     }
 
 
@@ -52,6 +54,7 @@ public class TaskService {
         }
 
         taskRepository.save(taskEntity);
+
 
         return taskEntity;
     }

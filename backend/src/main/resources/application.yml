@@ -6,3 +6,6 @@ logging:
 spring:
   datasource:
     url: jdbc:postgresql://backend-db:5432/backend_db
+
+  kafka:
+    bootstrap-servers: kafka:9092

@@ -1,0 +1,16 @@
+<component name="ProjectRunConfigurationManager">
+    <configuration default="false" name="NotificationServiceApplication" type="SpringBootApplicationConfigurationType"
+                   factoryName="Spring Boot" nameIsGenerated="true">
+        <module name="taskmates.notification_service.main"/>
+        <target name="notification_service"/>
+        <option name="SPRING_BOOT_MAIN_CLASS"
+                value="org.taskmates.notification_service.NotificationServiceApplication"/>
+        <method v="2">
+            <option name="Make" enabled="true"/>
+            <option name="RunConfigurationTask" enabled="true" run_configuration_name="NotificationDatabase"
+                    run_configuration_type="docker-deploy"/>
+            <option name="RunConfigurationTask" enabled="true" run_configuration_name="Kafka"
+                    run_configuration_type="docker-deploy"/>
+        </method>
+    </configuration>
+</component>
