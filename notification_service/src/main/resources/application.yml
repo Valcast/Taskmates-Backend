@@ -1,4 +1,8 @@
 spring:
   datasource:
-    url: jdbc:postgresql://notification-service-db:5432/notification_service_db
+    url: jdbc:postgresql://notification-db:5432/notification_db
+  kafka:
+    bootstrap-servers: kafka:9093
+
+
 

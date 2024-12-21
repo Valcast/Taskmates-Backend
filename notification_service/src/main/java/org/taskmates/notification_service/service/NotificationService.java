@@ -37,7 +37,7 @@ public class NotificationService {
         this.userPreferencesRepository = userPreferencesRepository;
     }
 
-    @KafkaListener(topics = "notification-topic", groupId = "notification-service")
+    @KafkaListener(topics = "send-notification", groupId = "notification-service")
     public void processNotification(NotificationDTO notificationDTO) {
         notificationValidationService.validateNotification(notificationDTO);
 

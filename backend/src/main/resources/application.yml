@@ -8,4 +8,4 @@ spring:
     url: jdbc:postgresql://backend-db:5432/backend_db
 
   kafka:
-    bootstrap-servers: kafka:9092
+    bootstrap-servers: kafka:9093
