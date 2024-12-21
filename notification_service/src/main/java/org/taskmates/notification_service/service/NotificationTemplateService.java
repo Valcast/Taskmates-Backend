@@ -16,11 +16,9 @@ import java.util.regex.Pattern;
 public class NotificationTemplateService {
 
     private final NotificationTemplateRepository notificationTemplateRepository;
-    private final UserService userService;
 
-    public NotificationTemplateService(NotificationTemplateRepository notificationTemplateRepository, UserService userService) {
+    public NotificationTemplateService(NotificationTemplateRepository notificationTemplateRepository) {
         this.notificationTemplateRepository = notificationTemplateRepository;
-        this.userService = userService;
     }
 
 
@@ -36,7 +34,7 @@ public class NotificationTemplateService {
             case PUSH_NOTIFICATION -> template.getPushTemplate();
         };
     }
-    
+
     private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\{([^}]+)}");
 
     public List<String> extractPlaceholders(String template) {
