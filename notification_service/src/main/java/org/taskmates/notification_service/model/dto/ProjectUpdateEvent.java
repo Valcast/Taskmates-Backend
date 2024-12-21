@@ -1,7 +1,8 @@
 package org.taskmates.notification_service.model.dto;
 
-import com.taskmates.backend.model.dto.domain_update.DomainEvent;
-import com.taskmates.backend.model.enums.UpdateDomainEventType;
+
+import org.taskmates.notification_service.model.DomainEvent;
+import org.taskmates.notification_service.model.enums.UpdateDomainEventType;
 
 import java.util.UUID;
 
