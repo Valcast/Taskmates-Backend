@@ -1,8 +1,8 @@
 package org.taskmates.notification_service.model.enums;
 
-public enum ChannelsType {
+public enum ChannelType {
     EMAIL,
     SMS,
-    PUSH_NOTIFICATION,
+    PUSH,
     IN_APP
 }

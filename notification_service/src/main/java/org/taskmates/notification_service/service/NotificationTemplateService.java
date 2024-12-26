@@ -2,63 +2,70 @@ package org.taskmates.notification_service.service;
 
 import org.springframework.stereotype.Service;
 import org.taskmates.notification_service.model.entities.NotificationTemplateEntity;
-import org.taskmates.notification_service.model.enums.ChannelsType;
+import org.taskmates.notification_service.model.entities.ProjectEntity;
+import org.taskmates.notification_service.model.entities.TaskEntity;
+import org.taskmates.notification_service.model.entities.UserEntity;
+import org.taskmates.notification_service.model.enums.ChannelType;
 import org.taskmates.notification_service.model.enums.NotificationType;
 import org.taskmates.notification_service.repository.NotificationTemplateRepository;
+import org.taskmates.notification_service.repository.ProjectRepository;
+import org.taskmates.notification_service.repository.TaskRepository;
+import org.taskmates.notification_service.repository.UserRepository;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.UUID;
 
 @Service
 public class NotificationTemplateService {
 
     private final NotificationTemplateRepository notificationTemplateRepository;
+    private final UserRepository userRepository;
+    private final TaskRepository taskRepository;
+    private final ProjectRepository projectRepository;
 
-    public NotificationTemplateService(NotificationTemplateRepository notificationTemplateRepository) {
+
+    public NotificationTemplateService(NotificationTemplateRepository notificationTemplateRepository, UserRepository userRepository, TaskRepository taskRepository, ProjectRepository projectRepository) {
         this.notificationTemplateRepository = notificationTemplateRepository;
+        this.userRepository = userRepository;
+        this.taskRepository = taskRepository;
+        this.projectRepository = projectRepository;
     }
 
 
-    public String getTemplate(NotificationType type, ChannelsType channel) {
-        NotificationTemplateEntity template = notificationTemplateRepository.findByNotificationType(type.name()).orElseThrow(
-                () -> new IllegalArgumentException("Notification template not found")
-        );
+    public String resolveMessage(ChannelType channelType, NotificationType type, UUID senderId, UUID entityId) {
+        NotificationTemplateEntity template = notificationTemplateRepository.findByNotificationType(type.name())
+                .orElseThrow(() -> new IllegalArgumentException("No template found for the given notification type: " + type.name()));
 
-        return switch (channel) {
-            case IN_APP -> template.getInAppTemplate();
-            case EMAIL -> null;
-            case SMS -> template.getSmsTemplate();
-            case PUSH_NOTIFICATION -> template.getPushTemplate();
-        };
+
+        String message = template.getMessage(channelType);
+
+        return fillPlaceholders(message, senderId, entityId);
     }
 
-    private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\{([^}]+)}");
+    private String fillPlaceholders(String message, UUID senderId, UUID entityId) {
+        UserEntity sender = userRepository.findById(senderId)
+                .orElseThrow(() -> new IllegalArgumentException("No user found with the given id: " + senderId));
 
-    public List<String> extractPlaceholders(String template) {
-        Matcher matcher = PLACEHOLDER_PATTERN.matcher(template);
-        List<String> placeholders = new ArrayList<>();
-        while (matcher.find()) {
-            placeholders.add(matcher.group(1).trim());
-        }
-        return placeholders;
-    }
+        message = message.replace("{senderName}", sender.getUsername());
 
-    public String fillTemplate(String template, Map<String, String> values) {
-        StringBuilder sb = new StringBuilder();
-        Matcher matcher = PLACEHOLDER_PATTERN.matcher(template);
-        int lastIndex = 0;
+        if (taskRepository.existsById(entityId)) {
+            TaskEntity task = taskRepository.findById(entityId)
+                    .orElseThrow(() -> new IllegalArgumentException("No task found with the given id: " + entityId));
 
-        while (matcher.find()) {
-            sb.append(template, lastIndex, matcher.start());
-            String placeholderKey = matcher.group(1).trim();
-            sb.append(values.getOrDefault(placeholderKey, ""));
-            lastIndex = matcher.end();
+            message = message.replace("{taskName}", task.getName());
+
+            return message;
         }
 
-        sb.append(template, lastIndex, template.length());
-        return sb.toString();
+        if (projectRepository.existsById(entityId)) {
+            ProjectEntity project = projectRepository.findById(entityId)
+                    .orElseThrow(() -> new IllegalArgumentException("No project found with the given id: " + entityId));
+
+            message = message.replace("{projectName}", project.getName());
+
+            return message;
+        }
+
+        throw new IllegalArgumentException("No task or project found with the given id: " + entityId);
+
     }
 }

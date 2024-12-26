@@ -3,6 +3,7 @@ package org.taskmates.notification_service.model.entities;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.taskmates.notification_service.model.enums.ChannelType;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -89,5 +90,14 @@ public class NotificationTemplateEntity {
 
     public String getInAppTemplate() {
         return inAppTemplate;
+    }
+
+    public String getMessage(ChannelType channelType) {
+        return switch (channelType) {
+            case SMS -> smsTemplate;
+            case PUSH -> pushTemplate;
+            case IN_APP -> inAppTemplate;
+            default -> throw new IllegalArgumentException("Unsupported channel type: " + channelType);
+        };
     }
 }

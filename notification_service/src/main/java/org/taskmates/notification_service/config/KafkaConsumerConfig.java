@@ -11,7 +11,7 @@ import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
-import org.taskmates.notification_service.model.dto.NotificationDTO;
+import org.taskmates.notification_service.model.events.SendNotificationEvent;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -34,15 +34,15 @@ public class KafkaConsumerConfig {
     }
 
     @Bean
-    public ConsumerFactory<String, NotificationDTO> consumerFactory() {
+    public ConsumerFactory<String, SendNotificationEvent> consumerFactory() {
         return new DefaultKafkaConsumerFactory<>(consumerConfig());
     }
 
     @Bean
-    public KafkaListenerContainerFactory<ConcurrentMessageListenerContainer<String, NotificationDTO>> kafkaListenerContainerFactory(
-            ConsumerFactory<String, NotificationDTO> consumerFactory
+    public KafkaListenerContainerFactory<ConcurrentMessageListenerContainer<String, SendNotificationEvent>> kafkaListenerContainerFactory(
+            ConsumerFactory<String, SendNotificationEvent> consumerFactory
     ) {
-        ConcurrentKafkaListenerContainerFactory<String, NotificationDTO> factory = new ConcurrentKafkaListenerContainerFactory<>();
+        ConcurrentKafkaListenerContainerFactory<String, SendNotificationEvent> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory);
         return factory;
     }

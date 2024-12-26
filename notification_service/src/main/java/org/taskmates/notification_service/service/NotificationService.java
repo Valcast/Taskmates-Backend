@@ -5,13 +5,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
-import org.taskmates.notification_service.model.Notification;
-import org.taskmates.notification_service.model.dto.NotificationDTO;
+import org.taskmates.notification_service.model.entities.UserEntity;
 import org.taskmates.notification_service.model.entities.UserPreferenceEntity;
-import org.taskmates.notification_service.model.enums.ChannelsType;
+import org.taskmates.notification_service.model.enums.ChannelType;
 import org.taskmates.notification_service.model.enums.NotificationType;
+import org.taskmates.notification_service.model.events.SendNotificationEvent;
 import org.taskmates.notification_service.repository.UserPreferencesRepository;
+import org.taskmates.notification_service.repository.UserRepository;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -22,57 +24,87 @@ public class NotificationService {
 
     private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
     private final NotificationValidationService notificationValidationService;
-    private final NotificationPriorityService notificationPriorityService;
     private final NotificationTemplateService notificationTemplateService;
+    private final NotificationSchedulerService notificationSchedulerService;
+    private final SendNotificationProducer sendNotificationProducer;
 
     private final UserPreferencesRepository userPreferencesRepository;
+    private final UserRepository userRepository;
 
     public NotificationService(NotificationValidationService notificationValidationService,
-                               NotificationPriorityService notificationPriorityService,
                                NotificationTemplateService notificationTemplateService,
-                               UserPreferencesRepository userPreferencesRepository) {
+                               NotificationSchedulerService notificationSchedulerService, SendNotificationProducer sendNotificationProducer,
+                               UserPreferencesRepository userPreferencesRepository, UserRepository userRepository) {
         this.notificationValidationService = notificationValidationService;
-        this.notificationPriorityService = notificationPriorityService;
+        this.userRepository = userRepository;
         this.notificationTemplateService = notificationTemplateService;
+        this.notificationSchedulerService = notificationSchedulerService;
+        this.sendNotificationProducer = sendNotificationProducer;
         this.userPreferencesRepository = userPreferencesRepository;
     }
 
     @KafkaListener(topics = "send-notification", groupId = "notification-service")
-    public void processNotification(NotificationDTO notificationDTO) {
-        notificationValidationService.validateNotification(notificationDTO);
+    public void processNotification(SendNotificationEvent sendNotificationEvent) {
+        notificationValidationService.validateNotification(sendNotificationEvent);
 
-        List<ChannelsType> activeChannels = resolveNotificationChannels(notificationDTO.receiverId(), notificationDTO.type());
+        UserEntity receiver = userRepository.findById(sendNotificationEvent.receiverId())
+                .orElseThrow(() -> new IllegalArgumentException("User not found with the given userId: " + sendNotificationEvent.receiverId()));
 
-        List<Notification> notifications = activeChannels.stream().map(
+        List<ChannelType> activeChannels = resolveNotificationChannels(sendNotificationEvent.receiverId(), sendNotificationEvent.type());
+
+        activeChannels.forEach(
                 channel -> {
-                    String template = notificationTemplateService.getTemplate(notificationDTO.type(), channel);
-                    return new Notification(
-                            template,
-                            channel
-                    );
+                    Instant scheduled = notificationSchedulerService.resolveScheduledTime(sendNotificationEvent.type(),
+                            sendNotificationEvent.projectId().orElse(sendNotificationEvent.taskId().orElse(null)));
+
+                    String message = notificationTemplateService.resolveMessage(channel, sendNotificationEvent.type(),
+                            sendNotificationEvent.senderId().orElse(null),
+                            sendNotificationEvent.projectId().orElse(sendNotificationEvent.taskId().orElse(null)));
+
+                    switch (channel) {
+                        case EMAIL ->
+                                sendNotificationProducer.sendEmailNotification(receiver.getEmail(), message, scheduled);
+                        case SMS ->
+                                sendNotificationProducer.sendSmsNotification(receiver.getPhoneNumber(), message, scheduled);
+                        case PUSH ->
+                                sendNotificationProducer.sendPushNotification(sendNotificationEvent.receiverId(), message, scheduled);
+                        case IN_APP ->
+                                sendNotificationProducer.sendInAppNotification(sendNotificationEvent.receiverId(), message, scheduled);
+                    }
                 }
-        ).toList();
 
-
+        );
     }
 
-    public List<ChannelsType> resolveNotificationChannels(UUID receiverID, NotificationType notificationType) {
+    public List<ChannelType> resolveNotificationChannels(UUID receiverID, NotificationType notificationType) {
         UserPreferenceEntity preferences = userPreferencesRepository
                 .findByUserIdAndNotificationType(receiverID, notificationType.name())
                 .orElseThrow(() -> new IllegalArgumentException("User preferences not found"));
 
-        List<ChannelsType> channels = new ArrayList<>();
-        if (preferences.getSms()) channels.add(ChannelsType.SMS);
-        if (preferences.getEmail()) channels.add(ChannelsType.EMAIL);
-        if (preferences.getPushNotification()) channels.add(ChannelsType.PUSH_NOTIFICATION);
-        if (preferences.getInApp()) channels.add(ChannelsType.IN_APP);
+        List<ChannelType> channels = new ArrayList<>();
+        if (preferences.getSms()) channels.add(ChannelType.SMS);
+        if (preferences.getEmail()) channels.add(ChannelType.EMAIL);
+        if (preferences.getPushNotification()) channels.add(ChannelType.PUSH);
+        if (preferences.getInApp()) channels.add(ChannelType.IN_APP);
+
+        List<ChannelType> allowedChannels = getAllowedChannelsForNotificationType(notificationType);
+
 
         if (channels.isEmpty()) {
             log.warn("No notification channels enabled for user: {}", receiverID);
             throw new IllegalArgumentException("No channels found for the user");
         }
 
-        return channels;
+        return channels.stream().filter(allowedChannels::contains).toList();
+    }
+
+    private List<ChannelType> getAllowedChannelsForNotificationType(NotificationType notificationType) {
+        return switch (notificationType) {
+            case PROJECT_INVITATION_ACCEPTED, PROJECT_INVITATION_DECLINED -> List.of(ChannelType.IN_APP);
+            case PROJECT_DELETED, DEADLINE_PASSED -> List.of(ChannelType.EMAIL, ChannelType.SMS, ChannelType.IN_APP);
+            case TASK_ASSIGNED, TASK_COMPLETED -> List.of(ChannelType.PUSH, ChannelType.IN_APP);
+            default -> List.of(ChannelType.EMAIL, ChannelType.PUSH, ChannelType.IN_APP);
+        };
     }
 
 
